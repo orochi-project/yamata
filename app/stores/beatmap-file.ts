@@ -160,7 +160,7 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
       const handle = await fileSave(
         await serializeBeatmap(),
         {
-          fileName: `${getBaseName(beatmapFileName.value) ?? CHART_ENTRY_FILENAME}.orbm`,
+          fileName: `${getBaseName(beatmapFileName.value) || CHART_ENTRY_FILENAME}.orbm`,
           extensions: [".orbm"],
         },
         beatmapFileHandle.value,
@@ -223,7 +223,7 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
       });
 
       await fileSave(blob, {
-        fileName: getBaseName(beatmapFileName.value) ?? CHART_ENTRY_FILENAME,
+        fileName: getBaseName(beatmapFileName.value) || CHART_ENTRY_FILENAME,
         extensions: [".json"],
         description: "Orochi Beatmap JSON",
       });
