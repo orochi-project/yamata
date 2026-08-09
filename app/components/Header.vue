@@ -83,8 +83,12 @@ const menuBarItems = computed<{ label: string; options: DropdownMenuItem[] }[]>(
     {
       label: "View",
       options: [
-        { label: "Zoom In", kbds: ["="], onSelect: timelineUi.zoomIn },
-        { label: "Zoom Out", kbds: ["-"], onSelect: timelineUi.zoomOut },
+        { label: "Zoom In Timeline", kbds: ["="], onSelect: timelineUi.zoomIn },
+        {
+          label: "Zoom Out Timeline",
+          kbds: ["-"],
+          onSelect: timelineUi.zoomOut,
+        },
       ],
     },
   ],
