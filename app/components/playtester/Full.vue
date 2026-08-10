@@ -19,9 +19,9 @@ const ORIGIN = { x: 1 / 10, y: 5 / 32 };
 const END = { x: 9 / 10, y: 27 / 32 };
 
 /** The left boundary on which the scanline's direction flips. */
-const SCANLINE_BOUNDARY_LEFT = { x: 1 / 20 };
+const SCANLINE_BOUNDARY_LEFT = { x: 9 / 160 };
 /** The right boundary on which the scanline's direction flips. */
-const SCANLINE_BOUNDARY_RIGHT = { x: 19 / 20 };
+const SCANLINE_BOUNDARY_RIGHT = { x: 152 / 160 };
 
 /** The top of the visible scanline, as a fraction (0-1) of the image height. */
 const SCANLINE_CLIP_TOP = 1 / 15;
