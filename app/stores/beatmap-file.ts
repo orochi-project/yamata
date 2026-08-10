@@ -227,7 +227,163 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
         extensions: [".json"],
         description: "Orochi Beatmap JSON",
       });
-    } catch {}
+    } catch (err) {
+      console.error("Failed to export beatmap to JSON:", err);
+    }
+  }
+
+  /**
+   * Convert a string into a Pascal-case identifier fragment.
+   *
+   * @param input - The input string.
+   *
+   * @returns The string in Pascal-case.
+   */
+  function toPascalCase(input: string): string {
+    const words = input
+      .replace(/[^a-zA-Z0-9]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    if (!words.length) return "Untitled";
+
+    return words
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join("");
+  }
+
+  /**
+   * Convert a Pascal-case string into snake_case.
+   *
+   * @param input - The input string in Pascal-case.
+   *
+   * @returns The string in snake_case.
+   */
+  function pascalToSnakeCase(input: string): string {
+    return input.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+  }
+
+  /**
+   * Get the Orochi C enum name for a note's type/direction.
+   *
+   * @param note - The note to extract.
+   *
+   * @returns The note type's enum name.
+   */
+  function noteTypeMacro(note: Note): string {
+    if (note.type === NoteType.HOLD) return "Hold";
+    if (note.type === NoteType.REVERSE) return "Reverse";
+    switch (
+      note.direction // only tap notes
+    ) {
+      case Direction.LEFT:
+        return "TapLeft";
+      case Direction.RIGHT:
+        return "TapRight";
+      case Direction.UP:
+        return "TapUp";
+      case Direction.DOWN:
+        return "TapDown";
+      default:
+        return "TapLeft";
+    }
+  }
+
+  /**
+   * Format a note as a Note struct initializer.
+   *
+   * @param note - The note to format.
+   *
+   * @returns The formatted Note struct string.
+   */
+  function formatNoteEntry(note: Note): string {
+    return (
+      `    {.type = ${noteTypeMacro(note)},\n` +
+      `     .grid_idx = ${note.gridIndex},\n` +
+      `     .speed_modifier = ${note.speedModifier},\n` +
+      `     .appear_frame = ${note.peakFrame - note.chargeFrames},\n` +
+      `     .charge_frames = ${note.chargeFrames},\n` +
+      `     .hold_frames = ${note.holdFrames || 0}},`
+    );
+  }
+
+  /** Export the beatmap as an Orochi C source/header pair, bundled as a ZIP. */
+  async function exportBeatmapC() {
+    try {
+      const pascalName = toPascalCase(getBaseName(beatmapFileName.value));
+      const snakeName = pascalToSnakeCase(pascalName);
+
+      const sorted = [...beatmapState.notes].sort(
+        (a, b) => a.peakFrame - a.chargeFrames - (b.peakFrame - b.chargeFrames),
+      );
+      const entries = sorted.map(formatNoteEntry).join("\n");
+
+      const headerFile = `#pragma once
+
+#include "Notes.h"
+#include "gbdk/platform.h"
+#include <stdint.h>
+
+BANKREF_EXTERN(map_${snakeName})
+
+Note Map${pascalName}GetNote(uint16_t note_idx) NONBANKED;
+uint16_t Map${pascalName}GetNoteCount(void) NONBANKED;
+`;
+
+      const sourceFile = `#include "Map${pascalName}.h"
+#include "Banks/SetAutoBank.h"
+#include "Maps.h"
+#include "gbdk/platform.h"
+#include <stdint.h>
+
+BANKREF(map_${snakeName})
+
+static const Note map_${snakeName}_notes[] = {
+${entries}
+};
+
+static const uint16_t map_${snakeName}_note_count =
+    sizeof(map_${snakeName}_notes) / sizeof(Note);
+
+Note Map${pascalName}GetNote(uint16_t note_idx) NONBANKED {
+    uint8_t _saved_bank = CURRENT_BANK;
+    SWITCH_ROM(BANK(map_${snakeName}));
+
+    Note note = map_${snakeName}_notes[note_idx];
+
+    SWITCH_ROM(_saved_bank);
+    return note;
+}
+
+uint16_t Map${pascalName}GetNoteCount(void) NONBANKED {
+    uint8_t _saved_bank = CURRENT_BANK;
+    SWITCH_ROM(BANK(map_${snakeName}));
+
+    uint16_t count = map_${snakeName}_note_count;
+
+    SWITCH_ROM(_saved_bank);
+    return count;
+}
+`;
+
+      const files: Record<string, Uint8Array> = {
+        [`Map${pascalName}.c`]: strToU8(sourceFile),
+        [`Map${pascalName}.h`]: strToU8(headerFile),
+      };
+
+      const blob = new Blob([zipSync(files, { level: 6 })], {
+        type: "application/zip",
+      });
+
+      await fileSave(blob, {
+        fileName: `Map${pascalName}`,
+        extensions: [".zip"],
+        description: "Orochi Beatmap C Source/Header",
+      });
+    } catch (err) {
+      console.error("Failed to export beatmap to C:", err);
+    }
   }
 
   /** Restore the file system file handle. */
@@ -253,6 +409,7 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
     openBeatmap,
     saveBeatmap,
     exportBeatmapJson,
+    exportBeatmapC,
     restoreHandle,
   };
 });

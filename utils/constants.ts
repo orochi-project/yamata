@@ -20,7 +20,7 @@ export const RULER_HEIGHT = 32;
 export const VIEW_PADDING_LEFT = 16;
 
 /** The width of the playable space in the map. */
-export const MAP_SPACE_WIDTH = 143;
+export const MAP_SPACE_WIDTH = 142;
 /** The number of pixels the scanline moves per frame. */
 export const SCANLINE_PIXELS_PER_FRAME = 1;
 /** The base number of seconds a full sweep should take. */
