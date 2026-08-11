@@ -1,6 +1,10 @@
 import { fileOpen, fileSave, supported } from "browser-fs-access";
 import { zipSync, unzipSync, strToU8, strFromU8 } from "fflate";
 import { get, set } from "idb-keyval";
+import {
+  type ScanlineCheckpoint,
+  computeScanlineCheckpoints,
+} from "../../utils/scanline";
 
 /** The key to the beatmap file handle. */
 const BEATMAP_FILE_HANDLE_KEY = "yamata:beatmap-file-handle";
@@ -294,17 +298,20 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
    * Format a note as a Note struct initializer.
    *
    * @param note - The note to format.
+   * @param scanline - The scanline's checkpoint state at the note's peak frame.
    *
    * @returns The formatted Note struct string.
    */
-  function formatNoteEntry(note: Note): string {
+  function formatNoteEntry(note: Note, scanline: ScanlineCheckpoint): string {
     return (
       `    {.type = ${noteTypeMacro(note)},\n` +
       `     .grid_idx = ${note.gridIndex},\n` +
       `     .speed_modifier = ${note.speedModifier},\n` +
       `     .appear_frame = ${note.peakFrame - note.chargeFrames},\n` +
       `     .charge_frames = ${note.chargeFrames},\n` +
-      `     .hold_frames = ${note.holdFrames || 0}},`
+      `     .hold_frames = ${note.holdFrames || 0},\n` +
+      `     .scanline_x = ${scanline.x},\n` +
+      `     .scanline_direction = ${scanline.direction}},`
     );
   }
 
@@ -317,7 +324,21 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
       const sorted = [...beatmapState.notes].sort(
         (a, b) => a.peakFrame - a.chargeFrames - (b.peakFrame - b.chargeFrames),
       );
-      const entries = sorted.map(formatNoteEntry).join("\n");
+
+      const scanlineCheckpoints = computeScanlineCheckpoints(sorted);
+
+      const entries = sorted
+        .map((note) => {
+          const scanline = scanlineCheckpoints.get(note.id);
+          if (!scanline) {
+            // Should never happen: every note produces its own checkpoint.
+            console.error(
+              `No scanline checkpoint computed for note ${note.id}; defaulting to {x: 0, direction: 1}.`,
+            );
+          }
+          return formatNoteEntry(note, scanline ?? { x: 0, direction: 1 });
+        })
+        .join("\n");
 
       const headerFile = `#pragma once
 
