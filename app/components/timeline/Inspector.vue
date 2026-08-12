@@ -126,6 +126,7 @@ function onInspectorResizeDown(e: PointerEvent) {
           <UInputNumber
             v-model="timelineUi.selectedNote.speedModifier"
             :min="0"
+            :max="4"
             class="w-full"
           />
         </div>
@@ -142,6 +143,7 @@ function onInspectorResizeDown(e: PointerEvent) {
           <UInputNumber
             v-model="timelineUi.selectedNote.peakFrame"
             :min="0"
+            :max="65535"
             class="w-full"
           />
         </div>
@@ -154,6 +156,7 @@ function onInspectorResizeDown(e: PointerEvent) {
           <UInputNumber
             v-model="timelineUi.selectedNote.holdFrames"
             :min="1"
+            :max="255"
             class="w-full"
           />
         </div>
@@ -166,6 +169,7 @@ function onInspectorResizeDown(e: PointerEvent) {
           <UInputNumber
             v-model="timelineUi.selectedNote.chargeFrames"
             :min="1"
+            :max="255"
             class="w-full"
           />
         </div>
