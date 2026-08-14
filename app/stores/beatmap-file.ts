@@ -6,6 +6,9 @@ import {
   computeScanlineCheckpoints,
 } from "../../utils/scanline";
 
+import Modal from "~/components/Modal.vue";
+import { MAX_NOTE_COUNT } from "~~/utils/constants";
+
 /** The key to the beatmap file handle. */
 const BEATMAP_FILE_HANDLE_KEY = "yamata:beatmap-file-handle";
 
@@ -16,6 +19,8 @@ const AUDIO_ENTRY_BASE_NAME = "audio";
 
 export const useBeatmapFileStore = defineStore("beatmapFile", () => {
   const beatmapState = useBeatmapStateStore();
+
+  const overlay = useOverlay();
 
   /** The handle to the selected file. */
   const beatmapFileHandle = ref<FileSystemFileHandle>();
@@ -150,6 +155,16 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
         if (granted)
           await set(BEATMAP_FILE_HANDLE_KEY, beatmapFileHandle.value);
         else beatmapFileHandle.value = undefined;
+      }
+
+      if (beatmapState.exceedsNoteLimit) {
+        const modal = overlay.create(Modal);
+
+        await modal.open({
+          title: "Note Limit Exceeded",
+          message: `This beatmap exceeds the ${MAX_NOTE_COUNT}-note limit. If you try to use this beatmap in Orochi, the program might fail to compile due to ROM bank size limits. Consider reducing the note count.`,
+          buttons: [{ label: "Got It!", color: "primary" }],
+        });
       }
 
       fileDirty.value = false;
@@ -334,6 +349,30 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
   /** Export the beatmap as an Orochi C source/header pair, bundled as a ZIP. */
   async function exportBeatmapC() {
     try {
+      if (beatmapState.exceedsNoteLimit) {
+        const modal = overlay.create(Modal);
+
+        const result = await modal.open({
+          title: "Note Limit Exceeded",
+          message: `This beatmap exceeds the ${MAX_NOTE_COUNT}-note limit. You can still export the map, but the Orochi might fail to compile due to ROM bank size limits. Would you like to export anyway?`,
+          buttons: [
+            {
+              label: "No",
+              color: "neutral",
+              variant: "soft",
+              onClick: () => false,
+            },
+            {
+              label: "Yes",
+              color: "primary",
+              onClick: () => true,
+            },
+          ],
+        });
+
+        if (!result) return;
+      }
+
       const pascalName = toPascalCase(getBaseName(beatmapFileName.value));
       const snakeName = pascalToSnakeCase(pascalName);
 

@@ -4,7 +4,7 @@ type ModalButton = {
   color?: "primary" | "secondary" | "success" | "error" | "warning" | "neutral";
   variant?: "solid" | "outline" | "soft" | "ghost" | "link";
   icon?: string;
-  onClick?: () => void | Promise<void>;
+  onClick?: () => any;
 };
 
 const props = defineProps<{
@@ -22,10 +22,8 @@ const loading = ref<string | null>(null);
 async function handleClick(button: ModalButton) {
   try {
     loading.value = button.label;
-
-    await button.onClick?.();
-
-    emit("close", button.label);
+    const result = await button.onClick?.();
+    emit("close", result);
   } finally {
     loading.value = null;
   }

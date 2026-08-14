@@ -140,7 +140,7 @@ const snapOptions = [
         <span
           class="flex items-center gap-1 text-xs text-dimmed"
           :class="{
-            'text-red-500': beatmapState.exceedsNoteLimit,
+            'text-warning': beatmapState.exceedsNoteLimit,
           }"
         >
           {{ beatmapState.notes.length }} / {{ MAX_NOTE_COUNT }} notes
