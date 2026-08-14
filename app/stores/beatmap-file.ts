@@ -398,10 +398,14 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
 #include "Notes.h"
 #include "gbdk/platform.h"
 
+/** The total frame count of the beatmap. */
+#define MAP_${snakeName.toUpperCase()}_FRAME_COUNT ${beatmapState.totalFrames}
+/** The number of notes in the beatmap. */
 #define MAP_${snakeName.toUpperCase()}_NOTE_COUNT ${sorted.length}
 
 BANKREF_EXTERN(map_${snakeName})
 
+/** The array of notes in the beatmap. */
 extern const Note map_${snakeName}_notes[MAP_${snakeName.toUpperCase()}_NOTE_COUNT];
 `;
 
