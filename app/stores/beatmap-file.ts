@@ -304,14 +304,16 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
    */
   function formatNoteEntry(note: Note, scanline: ScanlineCheckpoint): string {
     return (
-      `    {.type = ${noteTypeMacro(note)},\n` +
-      `     .grid_idx = ${note.gridIndex},\n` +
-      `     .speed_modifier = ${note.speedModifier},\n` +
-      `     .appear_frame = ${note.peakFrame - note.chargeFrames},\n` +
-      `     .charge_frames = ${note.chargeFrames},\n` +
-      `     .hold_frames = ${note.holdFrames || 0},\n` +
-      `     .scanline_x = ${scanline.x},\n` +
-      `     .scanline_direction = ${scanline.direction}},`
+      `    {\n` +
+      `        .type = ${noteTypeMacro(note)},\n` +
+      `        .grid_idx = ${note.gridIndex},\n` +
+      `        .speed_modifier = ${note.speedModifier},\n` +
+      `        .appear_frame = ${note.peakFrame - note.chargeFrames},\n` +
+      `        .charge_frames = ${note.chargeFrames},\n` +
+      `        .hold_frames = ${note.holdFrames || 0},\n` +
+      `        .scanline_x = ${scanline.x},\n` +
+      `        .scanline_direction = ${scanline.direction},\n` +
+      `    },`
     );
   }
 
@@ -330,12 +332,10 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
       const entries = sorted
         .map((note) => {
           const scanline = scanlineCheckpoints.get(note.id);
-          if (!scanline) {
-            // Should never happen: every note produces its own checkpoint.
+          if (!scanline)
             console.error(
-              `No scanline checkpoint computed for note ${note.id}; defaulting to {x: 0, direction: 1}.`,
+              `No scanline checkpoint computed for note ${note.id}. Defaulting to { .scanline_x = 0, .scanline_direction = 1 }.`,
             );
-          }
           return formatNoteEntry(note, scanline ?? { x: 0, direction: 1 });
         })
         .join("\n");
@@ -344,48 +344,22 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
 
 #include "Notes.h"
 #include "gbdk/platform.h"
-#include <stdint.h>
+
+#define MAP_${snakeName.toUpperCase()}_NOTE_COUNT ${sorted.length}
 
 BANKREF_EXTERN(map_${snakeName})
 
-Note Map${pascalName}GetNote(uint16_t note_idx) NONBANKED;
-uint16_t Map${pascalName}GetNoteCount(void) NONBANKED;
+extern const Note map_${snakeName}_notes[MAP_${snakeName.toUpperCase()}_NOTE_COUNT];
 `;
 
       const sourceFile = `#include "Map${pascalName}.h"
 #include "Banks/SetAutoBank.h"
-#include "Maps.h"
-#include "gbdk/platform.h"
-#include <stdint.h>
 
 BANKREF(map_${snakeName})
 
-static const Note map_${snakeName}_notes[] = {
+const Note map_${snakeName}_notes[MAP_${snakeName.toUpperCase()}_NOTE_COUNT] = {
 ${entries}
 };
-
-static const uint16_t map_${snakeName}_note_count =
-    sizeof(map_${snakeName}_notes) / sizeof(Note);
-
-Note Map${pascalName}GetNote(uint16_t note_idx) NONBANKED {
-    uint8_t _saved_bank = CURRENT_BANK;
-    SWITCH_ROM(BANK(map_${snakeName}));
-
-    Note note = map_${snakeName}_notes[note_idx];
-
-    SWITCH_ROM(_saved_bank);
-    return note;
-}
-
-uint16_t Map${pascalName}GetNoteCount(void) NONBANKED {
-    uint8_t _saved_bank = CURRENT_BANK;
-    SWITCH_ROM(BANK(map_${snakeName}));
-
-    uint16_t count = map_${snakeName}_note_count;
-
-    SWITCH_ROM(_saved_bank);
-    return count;
-}
 `;
 
       const files: Record<string, Uint8Array> = {
