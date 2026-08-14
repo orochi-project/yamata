@@ -30,6 +30,12 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
   /** The timer/interval to save the file. */
   let saveTimer: ReturnType<typeof setTimeout>;
 
+  /** Whether or not the file contains unsaved changes. */
+  const fileDirty = ref<boolean>(false);
+
+  /** Whether or not the file is currently loading. */
+  const loadingFile = ref<boolean>(false);
+
   /**
    * Serialize the current beatmap into a blob.
    *
@@ -92,6 +98,8 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
   /** Open an existing beatmap bundle and split it into notes and audio. */
   async function openBeatmap() {
     try {
+      loadingFile.value = true;
+
       const blob = await fileOpen({
         extensions: [".orbm"],
         description: "Orochi Beatmap Bundle",
@@ -143,9 +151,13 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
           await set(BEATMAP_FILE_HANDLE_KEY, beatmapFileHandle.value);
         else beatmapFileHandle.value = undefined;
       }
+
+      fileDirty.value = false;
     } catch (err) {
       if ((err as Error).name !== "AbortError")
         console.error("Failed to open beatmap:", err);
+    } finally {
+      loadingFile.value = false;
     }
   }
 
@@ -176,6 +188,8 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
         beatmapFileName.value = handle.name;
         await set(BEATMAP_FILE_HANDLE_KEY, handle);
       }
+
+      fileDirty.value = false;
     } catch (err) {
       console.error("Failed to save beatmap:", err);
     }
@@ -387,19 +401,69 @@ ${entries}
     if (handle) beatmapFileHandle.value = handle;
   }
 
+  /**
+   * Show the built-in "unsaved changes" dialog provided by the browser.
+   *
+   * @param event - The before-unload event.
+   */
+  function beforeUnloadHandler(event: BeforeUnloadEvent) {
+    if (!fileDirty.value) return;
+    event.preventDefault();
+  }
+
+  if (import.meta.client) {
+    watch(
+      fileDirty,
+      (dirty) => {
+        if (dirty) {
+          window.addEventListener("beforeunload", beforeUnloadHandler);
+        } else {
+          window.removeEventListener("beforeunload", beforeUnloadHandler);
+        }
+      },
+      { immediate: true },
+    );
+  }
+
   watch(
-    [() => beatmapState.notes, () => beatmapState.audioFile],
+    () => beatmapState.notes,
     () => {
+      if (loadingFile.value) return;
+
+      fileDirty.value = true;
+
       if (!supported) return;
+
       clearTimeout(saveTimer);
       saveTimer = setTimeout(saveBeatmap, 5000);
     },
-    { deep: true },
+    {
+      deep: true,
+      flush: "sync",
+    },
+  );
+
+  watch(
+    () => beatmapState.audioFile,
+    () => {
+      if (loadingFile.value) return;
+
+      fileDirty.value = true;
+
+      if (!supported) return;
+
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveBeatmap, 5000);
+    },
+    {
+      flush: "sync",
+    },
   );
 
   return {
     beatmapFileHandle,
     beatmapFileName,
+    fileDirty,
     supported,
     openBeatmap,
     saveBeatmap,

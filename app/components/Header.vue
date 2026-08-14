@@ -158,6 +158,14 @@ defineShortcuts({
           variant="ghost"
         />
       </UDropdownMenu>
+
+      <UTooltip
+        v-if="beatmapFile.fileDirty"
+        text="Beatmap contains unsaved changes."
+        class="ml-1"
+      >
+        <UIcon name="i-lucide-asterisk" class="size-4" />
+      </UTooltip>
     </template>
 
     <template #right>
