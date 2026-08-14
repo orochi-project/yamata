@@ -31,3 +31,6 @@ export const BASE_CROSSING_SECONDS =
 export const NOTE_WIDTH = 16;
 /** The height of a note, in pixels. */
 export const NOTE_HEIGHT = 16;
+
+/** The maximum allowed number of notes in one beatmap. */
+export const MAX_NOTE_COUNT = 1600;

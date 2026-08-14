@@ -50,6 +50,7 @@ export default defineNuxtConfig({
         "lucide:music-2",
         "lucide:plus",
         "lucide:minus",
+        "lucide:asterisk",
         "simple-icons:github",
       ],
     },

@@ -1,4 +1,4 @@
-import { FRAMES_PER_SECOND } from "~~/utils/constants";
+import { FRAMES_PER_SECOND, MAX_NOTE_COUNT } from "~~/utils/constants";
 
 export const useBeatmapStateStore = defineStore("beatmapState", () => {
   /** The audio source to play. */
@@ -18,5 +18,17 @@ export const useBeatmapStateStore = defineStore("beatmapState", () => {
   /** The reactive array storing every note currently placed in the timeline. */
   const notes = ref<Note[]>([]);
 
-  return { audioSource, audioFile, songDuration, totalFrames, notes };
+  /** Whether or not the beatmap exceeds the note limit. */
+  const exceedsNoteLimit = computed<boolean>(
+    () => notes.value.length > MAX_NOTE_COUNT,
+  );
+
+  return {
+    audioSource,
+    audioFile,
+    songDuration,
+    totalFrames,
+    notes,
+    exceedsNoteLimit,
+  };
 });

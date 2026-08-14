@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { MAX_NOTE_COUNT } from "~~/utils/constants";
+
 const props = defineProps<{ playing: boolean }>();
 const emit = defineEmits<{
   (e: "play"): void;
@@ -6,6 +8,7 @@ const emit = defineEmits<{
 }>();
 
 const beatmapFile = useBeatmapFileStore();
+const beatmapState = useBeatmapStateStore();
 const timelineUi = useTimelineUiStore();
 const timelineHistory = useTimelineHistoryStore();
 const playtesterUi = usePlaytesterUiStore();
@@ -27,10 +30,10 @@ const snapOptions = [
     >
       <div class="flex-1 flex justify-start items-center gap-4">
         <div class="shrink-0 flex items-center gap-2">
-          <UTooltip v-if="!props.playing" text="Play">
+          <UTooltip v-if="!props.playing" text="Play (Space)">
             <UButton icon="i-lucide-play" size="sm" @click="$emit('play')" />
           </UTooltip>
-          <UTooltip v-else text="Pause">
+          <UTooltip v-else text="Pause (Space)">
             <UButton
               icon="i-lucide-pause"
               size="sm"
@@ -133,6 +136,17 @@ const snapOptions = [
           </span>
           <USeparator orientation="vertical" class="shrink-0 h-5" />
         </template>
+
+        <span
+          class="flex items-center gap-1 text-xs text-dimmed"
+          :class="{
+            'text-red-500': beatmapState.exceedsNoteLimit,
+          }"
+        >
+          {{ beatmapState.notes.length }} / {{ MAX_NOTE_COUNT }} notes
+        </span>
+
+        <USeparator orientation="vertical" class="shrink-0 h-5" />
 
         <div class="shrink-0 flex items-center gap-2">
           <span class="text-xs text-dimmed">Snap</span>
