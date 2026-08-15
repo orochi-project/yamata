@@ -409,8 +409,9 @@ BANKREF_EXTERN(map_${snakeName})
 extern const Note map_${snakeName}_notes[MAP_${snakeName.toUpperCase()}_NOTE_COUNT];
 `;
 
-      const sourceFile = `#include "Map${pascalName}.h"
-#include "Banks/SetAutoBank.h"
+      const sourceFile = `#include "Banks/SetAutoBank.h"
+
+#include "Map${pascalName}.h"
 
 BANKREF(map_${snakeName})
 
