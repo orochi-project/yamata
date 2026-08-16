@@ -276,6 +276,9 @@ onBeforeUnmount(() => {
       <!-- grid -->
       <div
         class="absolute"
+        :class="
+          playtesterUi.showGrid ? 'border-t border-l border-blue-400/50' : ''
+        "
         :style="{
           left: gridBox.left + 'px',
           top: gridBox.top + 'px',
@@ -289,7 +292,7 @@ onBeforeUnmount(() => {
           class="group cursor-pointer absolute"
           :class="
             playtesterUi.showGrid
-              ? 'border border-red-300/50 hover:border-red-300 hover:bg-red-400/20'
+              ? 'border-r border-b border-blue-400/50 hover:ring-2 hover:ring-inset hover:ring-blue-300 hover:bg-blue-400/20'
               : ''
           "
           :style="{
