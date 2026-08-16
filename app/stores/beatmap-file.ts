@@ -167,6 +167,23 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
         });
       }
 
+      if (beatmapState.exceedsOamBudget) {
+        const modal = overlay.create(Modal);
+        const first = beatmapState.oamBudgetViolations[0]!;
+        const where =
+          first.scope === "total"
+            ? `${first.activeCount} notes are active at the same time around frame ${first.frame} (OAM limit: ${first.limit})`
+            : `${first.activeCount} notes are active at the same time in row ${
+                first.row! + 1
+              } around frame ${first.frame} (OAM limit: ${first.limit})`;
+
+        await modal.open({
+          title: "Sprite Budget Exceeded",
+          message: `${where}. Notes may flicker or disappear entirely on the actual export. You should space out or remove overlapping notes.`,
+          buttons: [{ label: "Got It!", color: "primary" }],
+        });
+      }
+
       fileDirty.value = false;
     } catch (err) {
       if ((err as Error).name !== "AbortError")
@@ -367,6 +384,33 @@ export const useBeatmapFileStore = defineStore("beatmapFile", () => {
               color: "primary",
               onClick: () => true,
             },
+          ],
+        });
+
+        if (!result) return;
+      }
+
+      if (beatmapState.exceedsOamBudget) {
+        const modal = overlay.create(Modal);
+        const first = beatmapState.oamBudgetViolations[0]!;
+        const where =
+          first.scope === "total"
+            ? `${first.activeCount} notes are active at the same time around frame ${first.frame} (OAM limit: ${first.limit})`
+            : `${first.activeCount} notes are active at the same time in row ${
+                first.row! + 1
+              } around frame ${first.frame} (OAM limit: ${first.limit})`;
+
+        const result = await modal.open({
+          title: "Sprite Budget Exceeded",
+          message: `${where}. If you don't go back and resolve them, the notes may flicker or disappear entirely on the actual export. Would you like to export anyway?`,
+          buttons: [
+            {
+              label: "No",
+              color: "neutral",
+              variant: "soft",
+              onClick: () => false,
+            },
+            { label: "Yes", color: "primary", onClick: () => true },
           ],
         });
 

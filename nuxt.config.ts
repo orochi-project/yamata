@@ -51,6 +51,7 @@ export default defineNuxtConfig({
         "lucide:plus",
         "lucide:minus",
         "lucide:asterisk",
+        "lucide:alert-triangle",
         "simple-icons:github",
       ],
     },

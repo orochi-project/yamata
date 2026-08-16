@@ -1,4 +1,5 @@
 import { FRAMES_PER_SECOND, MAX_NOTE_COUNT } from "~~/utils/constants";
+import { findOamBudgetViolations } from "~~/utils/oam-budget";
 
 export const useBeatmapStateStore = defineStore("beatmapState", () => {
   /** The audio source to play. */
@@ -23,6 +24,16 @@ export const useBeatmapStateStore = defineStore("beatmapState", () => {
     () => notes.value.length > MAX_NOTE_COUNT,
   );
 
+  /** The points in time the beatmap exceeds the Game Boy's OAM or sprite budget. */
+  const oamBudgetViolations = computed(() =>
+    findOamBudgetViolations(notes.value),
+  );
+
+  /** Whether or not the beatmap exceeds the OAM or sprite budget anywhere. */
+  const exceedsOamBudget = computed<boolean>(
+    () => oamBudgetViolations.value.length > 0,
+  );
+
   return {
     audioSource,
     audioFile,
@@ -30,5 +41,7 @@ export const useBeatmapStateStore = defineStore("beatmapState", () => {
     totalFrames,
     notes,
     exceedsNoteLimit,
+    oamBudgetViolations,
+    exceedsOamBudget,
   };
 });

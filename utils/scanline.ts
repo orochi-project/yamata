@@ -103,11 +103,8 @@ export function computeScanlineCheckpoints(
 
     for (const note of sorted) {
       if (note.peakFrame !== checkpointFrame) continue;
-      results.set(note.id, { x: Math.round(position), direction });
-    }
 
-    for (const note of sorted) {
-      if (note.peakFrame !== checkpointFrame) continue;
+      results.set(note.id, { x: Math.round(position), direction });
 
       if (note.type === NoteType.REVERSE) direction = direction === 1 ? -1 : 1;
       if (note.type === NoteType.HOLD)

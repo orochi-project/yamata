@@ -34,3 +34,37 @@ export const NOTE_HEIGHT = 16;
 
 /** The maximum allowed number of notes in one beatmap. */
 export const MAX_NOTE_COUNT = 1600;
+
+/** The number of grid rows on the game grid. */
+export const GRID_ROWS = 5;
+/** The number of grid columns on the game grid. */
+export const GRID_COLS = 8;
+
+/**
+ * The number of frames a missed note lingers for.
+ *
+ * Only applies to tap and reverse notes.
+ */
+export const NOTE_MISS_LINGER_FRAMES = 30;
+
+/** The Game Boy's limit on hardware sprites existing in OAM at once. */
+export const OAM_HARDWARE_SPRITE_LIMIT = 40;
+/** The Game Boy's limit on hardware sprites that may appear on any single hardware scanline (raster line) before the rest are skipped. */
+export const OAM_PER_SCANLINE_LIMIT = 10;
+
+/** The number hardware sprites used to draw the scanline sprite. */
+export const SCANLINE_OAM_COST = 7;
+/** The number of the scanline sprite's stacked tiles that can exist on the same hardware scanline (raster line). */
+export const SCANLINE_OAM_COST_PER_ROW = 1;
+/** The number of 8x16 hardware sprites used to draw one note. */
+export const NOTE_OAM_COST = 2;
+
+/** The maximum number of notes that may exist at once, anywhere on screen. */
+export const MAX_ACTIVE_NOTES = Math.floor(
+  (OAM_HARDWARE_SPRITE_LIMIT - SCANLINE_OAM_COST) / NOTE_OAM_COST,
+);
+
+/** The maximum number of notes that may exist at the same time on the same grid row. */
+export const MAX_ACTIVE_NOTES_PER_ROW = Math.floor(
+  (OAM_PER_SCANLINE_LIMIT - SCANLINE_OAM_COST_PER_ROW) / NOTE_OAM_COST,
+);

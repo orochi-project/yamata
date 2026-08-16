@@ -140,10 +140,25 @@ const snapOptions = [
         <span
           class="flex items-center gap-1 text-xs text-dimmed"
           :class="{
-            'text-warning': beatmapState.exceedsNoteLimit,
+            'text-warning':
+              beatmapState.exceedsNoteLimit || beatmapState.exceedsOamBudget,
           }"
         >
           {{ beatmapState.notes.length }} / {{ MAX_NOTE_COUNT }} notes
+
+          <UTooltip
+            v-if="beatmapState.exceedsNoteLimit"
+            text="Note limit exceeded. The beatmap might be too large to play."
+          >
+            <UIcon name="i-lucide-alert-triangle" class="text-warning" />
+          </UTooltip>
+
+          <UTooltip
+            v-if="beatmapState.exceedsOamBudget"
+            text="Sprite budget exceeded. See the export warning for more details."
+          >
+            <UIcon name="i-lucide-alert-triangle" class="text-warning" />
+          </UTooltip>
         </span>
 
         <USeparator orientation="vertical" class="shrink-0 h-5" />
