@@ -72,15 +72,7 @@ const gridBackground = computed(() => {
       backgroundImage: gridBackground,
     }"
   >
-    <UTooltip
-      v-for="note in rowNotes"
-      :key="note.id"
-      :text="
-        note.direction !== undefined
-          ? `${getNoteTypeMetadata(note.type).label} ${getDirectionLabel(note.direction)} (f${note.peakFrame})`
-          : `${getNoteTypeMetadata(note.type).label} (f${note.peakFrame})`
-      "
-    >
+    <template v-for="note in rowNotes" :key="note.id">
       <div
         v-if="note.type === NoteType.HOLD"
         class="z-20 pointer-events-none absolute top-1/2 -translate-y-1/2 h-9"
@@ -202,6 +194,6 @@ const gridBackground = computed(() => {
           <span class="relative text-xs font-bold text-fuchsia-900">B</span>
         </div>
       </div>
-    </UTooltip>
+    </template>
   </div>
 </template>
