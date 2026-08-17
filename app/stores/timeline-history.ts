@@ -1,9 +1,19 @@
 import { getNoteTypeMetadata, pxToFrame } from "~~/utils/timeline";
+import { findOamBudgetViolations } from "~~/utils/oam-budget";
+import {
+  MAX_ACTIVE_NOTES,
+  MAX_ACTIVE_NOTES_PER_ROW,
+  MAX_NOTE_COUNT,
+} from "~~/utils/constants";
+
+import Modal from "~/components/Modal.vue";
 
 export const useTimelineHistoryStore = defineStore("timelineHistory", () => {
   const beatmapState = useBeatmapStateStore();
   const timelineUi = useTimelineUiStore();
   const { currentFrame } = storeToRefs(useTimelineAudioStore());
+
+  const overlay = useOverlay();
 
   /** The default number of frames it takes for a tap or reverse note to become fully charged. */
   const DEFAULT_CHARGE_FRAMES = 90;
@@ -146,7 +156,7 @@ export const useTimelineHistoryStore = defineStore("timelineHistory", () => {
    * @param noteType - The type of note to place.
    * @param noteDirection - The note's direction.
    */
-  function placeNoteAt(
+  async function placeNoteAt(
     trackX: number,
     noteType: NoteType,
     noteDirection: Direction | undefined,
@@ -188,6 +198,28 @@ export const useTimelineHistoryStore = defineStore("timelineHistory", () => {
 
     const clampedNote = clampNoteToTimeline(note);
 
+    const wouldExceedNoteLimit = beatmapState.notes.length >= MAX_NOTE_COUNT;
+    const currentViolations = beatmapState.oamBudgetViolations;
+    const newViolations = findOamBudgetViolations([
+      ...beatmapState.notes,
+      clampedNote,
+    ]);
+
+    const addsNewViolation = newViolations.length > currentViolations.length;
+
+    const hasNewRowViolation = newViolations.some(
+      (v) =>
+        v.scope === "row" &&
+        !currentViolations.some(
+          (cv) => cv.frame === v.frame && cv.row === v.row,
+        ),
+    );
+
+    if (wouldExceedNoteLimit || addsNewViolation) {
+      await showLimitWarning(wouldExceedNoteLimit, hasNewRowViolation);
+      return;
+    }
+
     beatmapState.notes.push(clampedNote);
     timelineUi.selectOnly(clampedNote.id);
   }
@@ -202,7 +234,7 @@ export const useTimelineHistoryStore = defineStore("timelineHistory", () => {
    * @param type - The note type to place.
    * @param direction - The direction, for types that support it.
    */
-  function placeNoteAtGrid(
+  async function placeNoteAtGrid(
     gridIndex: number,
     frame: number,
     type: NoteType,
@@ -220,6 +252,28 @@ export const useTimelineHistoryStore = defineStore("timelineHistory", () => {
       chargeFrames: DEFAULT_CHARGE_FRAMES,
       holdFrames: type === NoteType.HOLD ? DEFAULT_HOLD_FRAMES : undefined,
     });
+
+    const wouldExceedNoteLimit = beatmapState.notes.length >= MAX_NOTE_COUNT;
+    const currentViolations = beatmapState.oamBudgetViolations;
+    const newViolations = findOamBudgetViolations([
+      ...beatmapState.notes,
+      note,
+    ]);
+
+    const addsNewViolation = newViolations.length > currentViolations.length;
+
+    const hasNewRowViolation = newViolations.some(
+      (v) =>
+        v.scope === "row" &&
+        !currentViolations.some(
+          (cv) => cv.frame === v.frame && cv.row === v.row,
+        ),
+    );
+
+    if (wouldExceedNoteLimit || addsNewViolation) {
+      await showLimitWarning(wouldExceedNoteLimit, hasNewRowViolation);
+      return;
+    }
 
     beatmapState.notes.push(note);
     pushUndoSnapshot(snapshot);
@@ -285,6 +339,30 @@ export const useTimelineHistoryStore = defineStore("timelineHistory", () => {
     }
 
     if (moved) pushUndoSnapshot(snapshot);
+  }
+
+  /** Show a warning popup when placing a note would exceed hardware limits. */
+  async function showLimitWarning(
+    exceedsNoteLimit: boolean,
+    isRowViolation: boolean = false,
+  ) {
+    const modal = overlay.create(Modal);
+    let title = "Sprite Limit Exceeded";
+
+    let message = isRowViolation
+      ? `Placing this note exceeds the ${MAX_ACTIVE_NOTES_PER_ROW}-note per row limit. The note has not been placed.`
+      : `Placing this note exceeds the ${MAX_ACTIVE_NOTES}-note OAM limit. The note has not been placed.`;
+
+    if (exceedsNoteLimit) {
+      title = "Note Limit Exceeded";
+      message = `Placing this note exceeds the ${MAX_NOTE_COUNT}-note limit.`;
+    }
+
+    await modal.open({
+      title,
+      message,
+      buttons: [{ label: "OK", color: "primary" }],
+    });
   }
 
   return {

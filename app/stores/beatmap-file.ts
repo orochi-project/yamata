@@ -5,9 +5,9 @@ import {
   type ScanlineCheckpoint,
   computeScanlineCheckpoints,
 } from "../../utils/scanline";
+import { MAX_NOTE_COUNT } from "~~/utils/constants";
 
 import Modal from "~/components/Modal.vue";
-import { MAX_NOTE_COUNT } from "~~/utils/constants";
 
 /** The key to the beatmap file handle. */
 const BEATMAP_FILE_HANDLE_KEY = "yamata:beatmap-file-handle";
