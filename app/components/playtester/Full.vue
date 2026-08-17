@@ -80,12 +80,8 @@ function advance(
   return { position: left + finalRelativePos, direction: finalDirection };
 }
 
-/**
- * Get the scanline's position and direction at the current frame.
- *
- * Notes are saved as individual events at their peak frame.
- */
-const scanlineState = computed<{ x: number; direction: 1 | -1 }>(() => {
+/** The scanline state at every checkpoint frame. */
+const scanlineCheckpoints = computed(() => {
   const left = scanBounds.value.left;
   const right = scanBounds.value.right;
 
@@ -93,24 +89,25 @@ const scanlineState = computed<{ x: number; direction: 1 | -1 }>(() => {
   let direction: 1 | -1 = 1;
   let speedModifier = 1;
   let lastFrame = 0;
-  /** The frame at which an active freeze from a hold note ends. */
   let frozenUntil = 0;
 
-  const checkpoints = new Set<number>();
-
+  const checkpointFrames = new Set<number>([0]);
   for (const note of beatmapNotesSorted.value) {
-    checkpoints.add(note.peakFrame);
+    checkpointFrames.add(note.peakFrame);
     if (note.type === NoteType.HOLD)
-      checkpoints.add(note.peakFrame + (note.holdFrames ?? 0));
+      checkpointFrames.add(note.peakFrame + (note.holdFrames ?? 0));
   }
 
-  const sortedCheckpoints = [...checkpoints].sort((a, b) => a - b);
+  const sorted = [...checkpointFrames].sort((a, b) => a - b);
 
-  /**
-   * Advance the simulation from the last frame to the target frame.
-   *
-   * @param targetFrame - The frame to advance to.
-   */
+  const states: {
+    frame: number;
+    position: number;
+    direction: 1 | -1;
+    speedModifier: number;
+    frozenUntil: number;
+  }[] = [];
+
   function advanceTo(targetFrame: number) {
     const segmentFrames = targetFrame - lastFrame;
 
@@ -124,9 +121,7 @@ const scanlineState = computed<{ x: number; direction: 1 | -1 }>(() => {
     lastFrame = targetFrame;
   }
 
-  for (const checkpointFrame of sortedCheckpoints) {
-    if (checkpointFrame > currentFrame.value) break;
-
+  for (const checkpointFrame of sorted) {
     advanceTo(checkpointFrame);
 
     for (const note of beatmapNotesSorted.value) {
@@ -137,11 +132,62 @@ const scanlineState = computed<{ x: number; direction: 1 | -1 }>(() => {
         frozenUntil = note.peakFrame + (note.holdFrames ?? 0);
       if (note.speedModifier !== 0) speedModifier = note.speedModifier;
     }
+
+    states.push({
+      frame: checkpointFrame,
+      position,
+      direction,
+      speedModifier,
+      frozenUntil,
+    });
   }
 
-  advanceTo(currentFrame.value);
+  return states;
+});
 
-  return { x: position, direction };
+/**
+ * The scanline's position and direction at the current frame.
+ *
+ * This uses binary search because replaying the entire song every frame causes extreme lag further into the beatmap.
+ */
+const scanlineState = computed<{ x: number; direction: 1 | -1 }>(() => {
+  const left = scanBounds.value.left;
+  const right = scanBounds.value.right;
+  const checkpoints = scanlineCheckpoints.value;
+
+  let low = 0;
+  let high = checkpoints.length - 1;
+  let idx = -1;
+
+  // search for the scanline checkpoint at the current frame
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    if (checkpoints[mid]!.frame <= currentFrame.value) {
+      idx = mid;
+      low = mid + 1;
+    } else high = mid - 1;
+  }
+
+  const base =
+    idx >= 0
+      ? checkpoints[idx]!
+      : {
+          frame: 0,
+          position: left,
+          direction: 1 as const,
+          speedModifier: 1,
+          frozenUntil: 0,
+        };
+
+  const segmentFrames = currentFrame.value - base.frame;
+
+  if (segmentFrames <= 0 || base.frozenUntil > base.frame)
+    return { x: base.position, direction: base.direction };
+
+  const distance = stepPerFrame.value * base.speedModifier * segmentFrames;
+  const result = advance(base.position, base.direction, distance, left, right);
+
+  return { x: result.position, direction: result.direction };
 });
 
 /**
