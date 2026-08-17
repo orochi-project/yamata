@@ -334,9 +334,11 @@ onUnmounted(() =>
             <div
               class="pointer-events-none z-50 absolute w-px bg-error"
               :style="{
-                left: frameToPx(currentFrame, timelineUi.pixelsPerFrame) + 'px',
+                left: 0,
                 top: RULER_HEIGHT + 'px',
                 bottom: 0,
+                transform: `translate3d(${frameToPx(currentFrame, timelineUi.pixelsPerFrame)}px, 0, 0)`,
+                willChange: 'transform',
               }"
             >
               <div class="-ml-1.5 -mt-1.5 rotate-45 size-3 bg-error" />
