@@ -358,6 +358,7 @@ onBeforeUnmount(() => {
           <div
             v-if="activeNoteByIndex.has(cell.index)"
             class="pointer-events-none absolute inset-0"
+            style="will-change: transform"
           >
             <PlaytesterNote
               :note="activeNoteByIndex.get(cell.index)!.note"
@@ -376,10 +377,12 @@ onBeforeUnmount(() => {
       <div
         class="absolute pointer-events-none bg-white"
         :style="{
-          left: `${scanlineX - 4}px`,
+          left: 0,
           top: `${scanlineBox.top}px`,
           width: '4px',
           height: `${scanlineBox.height}px`,
+          transform: `translate3d(${scanlineX - 4}px, 0, 0)`,
+          willChange: 'transform',
         }"
       />
     </div>
