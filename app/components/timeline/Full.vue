@@ -25,6 +25,28 @@ const { currentFrame, isPlaying } = storeToRefs(useTimelineAudioStore());
 
 useTimelineKeyboard();
 
+/** The horizontal pixel range currently visible. */
+const visibleRange = ref({ left: 0, right: 0 });
+
+/** Recalculate the visible pixel range from the scroll container's current scroll position. */
+function updateVisibleRange() {
+  if (!scrollElement.value) return;
+
+  const buffer = scrollElement.value.clientWidth;
+  const newLeft = Math.max(0, scrollElement.value.scrollLeft - buffer);
+  const newRight =
+    scrollElement.value.scrollLeft + scrollElement.value.clientWidth + buffer;
+
+  const threshold = buffer / 4;
+  if (
+    Math.abs(newLeft - visibleRange.value.left) < threshold &&
+    Math.abs(newRight - visibleRange.value.right) < threshold
+  )
+    return;
+
+  visibleRange.value = { left: newLeft, right: newRight };
+}
+
 /** The height of the timeline panel, in pixels. */
 const panelHeight = ref(284);
 
@@ -107,7 +129,20 @@ const gridLines = computed(() => {
 
   const lastMajorFrame = majorFrames[majorFrames.length - 1];
 
-  for (let f = 0; f <= beatmapState.totalFrames; f += minorStep) {
+  const startFrame = Math.max(
+    0,
+    Math.floor(
+      visibleRange.value.left / timelineUi.pixelsPerFrame / minorStep,
+    ) * minorStep,
+  );
+  const endFrame = Math.min(
+    beatmapState.totalFrames,
+    Math.ceil(
+      visibleRange.value.right / timelineUi.pixelsPerFrame / minorStep,
+    ) * minorStep,
+  );
+
+  for (let f = startFrame; f <= endFrame; f += minorStep) {
     const isMajor = f % majorStep === 0;
     const px = frameToPx(f, timelineUi.pixelsPerFrame);
 
@@ -125,6 +160,21 @@ const gridLines = computed(() => {
 
   return lines;
 });
+
+watch([() => timelineUi.pixelsPerFrame, () => beatmapState.totalFrames], () =>
+  nextTick(updateVisibleRange),
+);
+
+onMounted(() => {
+  updateVisibleRange();
+  scrollElement.value?.addEventListener("scroll", updateVisibleRange, {
+    passive: true,
+  });
+});
+
+onUnmounted(() =>
+  scrollElement.value?.removeEventListener("scroll", updateVisibleRange),
+);
 </script>
 
 <template>
@@ -244,6 +294,7 @@ const gridLines = computed(() => {
                 :type="t"
                 :grid-spacing="gridSpacing"
                 :timeline-width="timelineWidth"
+                :visible-range="visibleRange"
                 @note-down="timelineInteractions.onNoteDown"
                 @hold-resize-left="timelineInteractions.onHoldResizeLeftDown"
                 @hold-resize-right="timelineInteractions.onHoldResizeRightDown"

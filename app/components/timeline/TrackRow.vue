@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import { ROW_HEIGHT } from "~~/utils/constants";
-import {
-  frameToPx,
-  getNoteTypeMetadata,
-  getDirectionIcon,
-  getDirectionLabel,
-} from "~~/utils/timeline";
+import { frameToPx, getDirectionIcon } from "~~/utils/timeline";
 
 const props = defineProps<{
   type: { key: NoteType; label: string };
   timelineWidth: number;
   gridSpacing: { minorPx: number; majorPx: number };
+  visibleRange: { left: number; right: number };
 }>();
 
 const emit = defineEmits<{
@@ -33,9 +29,26 @@ const REVERSE_NOTE_HEAD_SIZE = 48;
 const getNoteHeadSize = (note: Note) =>
   note.type === NoteType.TAP ? TAP_NOTE_HEAD_SIZE : REVERSE_NOTE_HEAD_SIZE;
 
-/** Notes belonging to this row's note type. */
+/** Notes of this row's note type that are in the visible range. */
 const rowNotes = computed(() =>
-  beatmapState.notes.filter((n) => n.type === props.type.key),
+  beatmapState.notes.filter((n) => {
+    if (n.type !== props.type.key) return false;
+
+    const chargeFrames = n.chargeFrames ?? 0;
+    const noteLeft = frameToPx(
+      n.peakFrame - chargeFrames,
+      timelineUi.pixelsPerFrame,
+    );
+    const noteRight =
+      noteLeft +
+      frameToPx(chargeFrames, timelineUi.pixelsPerFrame) +
+      getNoteHeadSize(n);
+
+    return (
+      noteRight >= props.visibleRange.left &&
+      noteLeft <= props.visibleRange.right
+    );
+  }),
 );
 
 /** CSS background creating minor/major grid lines without any DOM nodes. */
